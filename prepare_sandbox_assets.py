@@ -60,6 +60,29 @@ for voice in voices:
         f.write(f'window.KOKORO_VOICES["{voice}"] = "{v_b64}";\n')
     print(f"  Wrote {voice_file}")
 
+# 3. Download and encode WASM files for ONNX Runtime 1.20.0
+wasm_dir = os.path.join(output_dir, "wasm")
+os.makedirs(wasm_dir, exist_ok=True)
+
+wasm_files = {
+    "ort-wasm-simd.wasm": "wasm_simd.js",
+    "ort-wasm.wasm": "wasm_default.js"
+}
+
+for wasm_name, js_name in wasm_files.items():
+    wasm_url = f"https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0/dist/{wasm_name}"
+    print(f"Downloading {wasm_name}...")
+    r = requests.get(wasm_url)
+    r.raise_for_status()
+    
+    w_b64 = base64.b64encode(r.content).decode("utf-8")
+    
+    js_path = os.path.join(wasm_dir, js_name)
+    var_name = "KOKORO_WASM_SIMD_B64" if "simd" in wasm_name else "KOKORO_WASM_DEFAULT_B64"
+    with open(js_path, "w", encoding="utf-8") as f:
+        f.write(f'window.{var_name} = "{w_b64}";\n')
+    print(f"  Wrote {js_path}")
+
 print("Clean up original binary files to keep repository clean...")
 if os.path.exists(model_path):
     os.remove(model_path)
